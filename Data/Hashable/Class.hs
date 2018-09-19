@@ -70,6 +70,7 @@ import Data.Bits (shiftL, shiftR, xor)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Unsafe as B
+import Data.Complex (Complex(..))
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.List (foldl')
 import Data.Ratio (Ratio, denominator, numerator)
@@ -110,7 +111,8 @@ import GHC.Generics
 #endif
 
 #if   __GLASGOW_HASKELL__ >= 801
-import Type.Reflection (typeRepFingerprint, Typeable, TypeRep, SomeTypeRep(..))
+import Type.Reflection (Typeable, TypeRep, SomeTypeRep(..))
+import Type.Reflection.Unsafe (typeRepFingerprint)
 import GHC.Fingerprint.Type(Fingerprint(..))
 #elif __GLASGOW_HASKELL__ >= 710
 import Data.Typeable (typeRepFingerprint, Typeable, TypeRep)
@@ -437,6 +439,14 @@ instance Hashable Integer where
         maxInt = fromIntegral (maxBound :: Int)
         inBounds x = x >= fromIntegral (minBound :: Int) && x <= maxInt
 #endif
+
+instance Hashable a => Hashable (Complex a) where
+    {-# SPECIALIZE instance Hashable (Complex Double) #-}
+    {-# SPECIALIZE instance Hashable (Complex Float)  #-}
+    hash (r :+ i) = hash r `hashWithSalt` i
+    hashWithSalt = hashWithSalt1
+instance Hashable1 Complex where
+    liftHashWithSalt h s (r :+ i) = s `h` r `h` i
 
 #if MIN_VERSION_base(4,9,0)
 -- Starting with base-4.9, numerator/denominator don't need 'Integral' anymore
